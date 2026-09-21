@@ -8,7 +8,7 @@ Hiểu chuỗi đối tượng `SpreadsheetApp → Spreadsheet → Sheet → Ran
 
 ## Tiến độ
 
-- [x] Bước 1 — Tạo Google Sheet `QUAN_LY_TRA_NO_MON` + 5 sheet con
+- [x] Bước 1 — Tạo Google Sheet `QUAN_LY_TRA_NO_MON` + các sheet con (thực tế: 8 sheet, xem ghi chú Bước 1)
 - [x] Bước 2 — Tạo tiêu đề cột cho từng sheet
 - [x] Bước 3 — Nhập dữ liệu mẫu vào `SINHVIEN`
 - [x] Bước 4 — Mở Apps Script Editor (Extensions → Apps Script)
@@ -22,6 +22,19 @@ Hiểu chuỗi đối tượng `SpreadsheetApp → Spreadsheet → Sheet → Ran
 ## File phát sinh trong buổi 1
 
 - [`Code.gs`](./Code.gs) — bản sao code mẫu để dán vào Apps Script Editor (moSheet, docDuLieu, ghiDuLieu, layDanhSachSinhVien).
+- [`QUAN_LY_TRA_NO_MON.xlsx`](./QUAN_LY_TRA_NO_MON.xlsx) — bản export thật của Google Sheet đang dùng, dùng làm **nguồn đối chiếu thực tế** khi tài liệu và dữ liệu thật lệch nhau (xem Bước 1-2 và mục "Chênh lệch so với tài liệu khung" bên dưới).
+
+## Chênh lệch giữa dữ liệu thật (`QUAN_LY_TRA_NO_MON.xlsx`) và hướng dẫn ban đầu
+
+Sau khi đối chiếu file `.xlsx` thật, các mục dưới đây trong README này đã được **sửa lại cho khớp thực tế** (không sửa tài liệu khung `Docs/GG Apps Script Ver2.md`, vì đó là đặc tả gốc):
+
+1. **Nhiều hơn 5 sheet.** File thật có 8 sheet: `Header_Raw`, `DANH_MUC`, `SINHVIEN`, `MONHOC`, `DANGKY`, `LICH`, `BAOCAO`, `KETQUA` — xem chi tiết Bước 1.
+2. **`MONHOC`, `DANGKY`, `LICH` có nhiều cột hơn/khác thứ tự** so với mục 3.2 tài liệu khung — xem bảng Bước 2.
+3. **Lỗi dữ liệu cần sửa trên Sheet thật:**
+   - `DANGKY` có **2 cột cùng tên `GhiChu`** (cột F và G) — trùng tên do lỗi khi tạo cột, cần đổi tên hoặc xoá 1 cột trước khi viết code đọc/ghi `DANGKY` ở Buổi 4/6, nếu không code dựa theo tên cột sẽ không biết cột nào là cột đúng.
+   - `SINHVIEN.SDT` đang được lưu là **kiểu số**, Excel/Sheets hiển thị dạng khoa học (`9.01234561E8`) — số điện thoại Việt Nam bắt đầu bằng `0` sẽ bị mất chữ số 0 đầu khi đọc bằng `getValues()`. Nên đổi định dạng cột `SDT` thành **Plain text**, và nhập lại kèm dấu `'` trước số (ví dụ `'0901234561`) để giữ đúng chuỗi số.
+4. **`SINHVIEN` đã có 200 dòng dữ liệu thật** (MSSV dạng `PS20001...`, email `@fpt.edu.vn`), **`MONHOC` có 270 dòng thật** — vượt xa mức "3-5 dòng mẫu" ban đầu hướng dẫn ở Bước 3, không cần nhập thêm.
+5. **`KETQUA` đã được tạo sẵn** đúng cấu trúc mục 3.2 (`MSSV, MaMon, Diem, KetQua, GhiChu`) — sớm hơn dự kiến (tài liệu khung dự kiến tạo từ Buổi 4), không phải vấn đề, chỉ cần ghi nhận.
 
 ---
 
@@ -31,38 +44,51 @@ Hiểu chuỗi đối tượng `SpreadsheetApp → Spreadsheet → Sheet → Ran
 
 1. Vào [sheets.google.com](https://sheets.google.com) → tạo file mới.
 2. Đặt tên file: `QUAN_LY_TRA_NO_MON`.
-3. Tạo đủ 5 sheet (tab) với **đúng tên** sau (Apps Script sẽ tham chiếu theo tên, sai tên là lỗi `getSheetByName` trả về `null`):
-   - `SINHVIEN`
-   - `MONHOC`
-   - `DANGKY`
-   - `LICH`
-   - `BAOCAO`
+3. Tạo các sheet (tab) — Apps Script tham chiếu theo tên, sai tên là lỗi `getSheetByName` trả về `null`.
 
-> Ghi chú: mô hình dữ liệu đầy đủ ở mục 3.2 của khung chương trình còn có sheet `KETQUA` (kết quả thi), nhưng buổi 1 không tạo — sheet này sẽ được thêm khi học đến phần kiểm tra điều kiện / cập nhật kết quả (buổi 4 trở đi).
+**Trạng thái thực tế (đối chiếu từ `QUAN_LY_TRA_NO_MON.xlsx`) — file hiện có 8 sheet:**
+
+| Sheet | Vai trò |
+|---|---|
+| `SINHVIEN` | Danh mục sinh viên — 200 dòng dữ liệu thật |
+| `MONHOC` | Danh mục môn học — 270 dòng dữ liệu thật |
+| `DANGKY` | Đăng ký trả nợ — đã tạo cấu trúc, chưa có dữ liệu |
+| `LICH` | Lịch học — đã tạo cấu trúc, chưa có dữ liệu |
+| `BAOCAO` | Báo cáo thống kê — đã tạo cấu trúc, chưa có dữ liệu |
+| `KETQUA` | Kết quả thi (mục 3.2 khung chương trình) — đã tạo sẵn, sớm hơn dự kiến (tài liệu khung dự kiến từ Buổi 4) |
+| `DANH_MUC` | **Không có trong tài liệu khung** — chứa các danh mục chuẩn hoá (mã trạng thái, mã bộ môn, mã chuyên ngành...), chuẩn bị cho dropdown/`DataValidation` ở Buổi 6 |
+| `Header_Raw` | **Không có trong tài liệu khung** — 1 dòng, đúng 13 cột tiêu đề của `SINHVIEN`. Có vẻ là bản lưu/nháp tiêu đề gốc, không được code nào tham chiếu tới. Có thể giữ lại làm bản backup tên cột, hoặc xoá nếu không cần — không ảnh hưởng đến bài tập buổi 1. |
+
+5 sheet lõi theo đúng tên tài liệu khung yêu cầu (`SINHVIEN, MONHOC, DANGKY, LICH, BAOCAO`) đã có đủ; `KETQUA` cũng đã có sẵn nên không cần tạo thêm ở Buổi 4. `DANH_MUC` và `Header_Raw` là phần mở rộng tự thêm, không bắt buộc theo tài liệu khung nhưng không sai — chỉ cần lưu ý code buổi 1-2 (`Code.gs`) không đụng tới 2 sheet này.
 
 ### Bước 2 — Tạo tiêu đề cột (dòng 1 mỗi sheet)
 
-| Sheet | Cột (dòng 1) |
-|---|---|
-| `SINHVIEN` | `MSSV`, `HoTen`, `Lop`, `Khoa`, `ChuyenNganh`, `MaNganh`, `KyHoc`, `TrangThai`, `Email`, `SDT`, `BoMon`, `PhanLoai`, `GhiChu` |
-| `MONHOC` | `MaMon`, `TenMon`, `SoTinChi` |
-| `DANGKY` | `MSSV`, `MaMon`, `NgayDangKy`, `TrangThai` |
-| `LICH` | `MaMon`, `Nhom`, `Ngay`, `Phong`, `SiSo` |
-| `BAOCAO` | để trống — bảng báo cáo sẽ được định nghĩa ở buổi 3 |
+**Cột thực tế trên Sheet thật** (đối chiếu từ `QUAN_LY_TRA_NO_MON.xlsx`, khác một phần so với mục 3.2 tài liệu khung — xem cột "Ghi chú"):
+
+| Sheet | Cột (dòng 1) | Ghi chú |
+|---|---|---|
+| `SINHVIEN` | `MSSV`, `HoTen`, `Lop`, `Khoa`, `ChuyenNganh`, `MaNganh`, `KyHoc`, `TrangThai`, `Email`, `SDT`, `BoMon`, `PhanLoai`, `GhiChu` | Khớp đúng bản mở rộng 13 cột đã chốt trước đó |
+| `MONHOC` | `MaMon`, `TenMon`, `BoMon`, `SoTinChi`, `LoaiMon`, `TrangThai`, `GhiChu` | Tài liệu khung mục 3.2 chỉ ghi 3 cột (`MaMon, TenMon, SoTinChi`) — Sheet thật có thêm `BoMon, LoaiMon, TrangThai, GhiChu` và đổi thứ tự (`BoMon` trước `SoTinChi`). Nhiều dòng chỉ điền `MaMon/TenMon/BoMon`, các cột còn lại đang trống — code đọc cột này cần xử lý giá trị rỗng. |
+| `DANGKY` | `MSSV`, `MaMon`, `NgayDangKy`, `TrangThai`, `Nhom`, `GhiChu`, **`GhiChu`** | **Lỗi:** cột F và G cùng tên `GhiChu` — cần sửa trên Sheet thật trước khi dùng ở Buổi 4/6 (xem mục "Chênh lệch..." ở trên). Cột `Nhom` cũng là phần mở rộng, không có trong mục 3.2. |
+| `LICH` | `MaMon`, `Nhom`, `Ngay`, `Ca`, `Phong`, `SiSo`, `GhiChu` | Tài liệu khung mục 3.2 không có cột `Ca` và `GhiChu` — đây là mở rộng hợp lý (thêm buổi/ca học), không cần sửa. |
+| `BAOCAO` | `MaMon`, `TenMon`, `SoLuongDangKy`, `SoNhom`, `SoSVDaHoc`, `SoSVChuaHoc`, `SoSVDaThi`, `SoSVDat`, `SoSVKhongDat`, `TyLeDat`, `NgayCapNhat` | Đã định nghĩa sẵn đủ cho cả bảng báo cáo Buổi 3 và dashboard Buổi 7, sớm hơn dự kiến — không cần sửa ở buổi 1. |
+| `KETQUA` | `MSSV`, `MaMon`, `Diem`, `KetQua`, `GhiChu` | Khớp đúng mục 3.2 tài liệu khung. |
 
 ### Bước 3 — Nhập dữ liệu mẫu vào `SINHVIEN`
 
-Nhập tay 3-5 dòng sinh viên mẫu bên dưới dòng tiêu đề, ví dụ:
+**Đã có sẵn — không cần làm gì thêm.** Đối chiếu `QUAN_LY_TRA_NO_MON.xlsx` cho thấy `SINHVIEN` đã có **200 dòng dữ liệu thật** (MSSV dạng `PS20001, PS20002...`, họ tên tiếng Việt, email `@fpt.edu.vn`), vượt xa mức "3-5 dòng mẫu" dự kiến ban đầu. Ví dụ 2 dòng đầu:
 
 | MSSV | HoTen | Lop | Khoa | ChuyenNganh | MaNganh | KyHoc | TrangThai | Email | SDT | BoMon | PhanLoai | GhiChu |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| SV001 | Nguyen Van A | CNTT1 | CNTT | Ky thuat phan mem | 7480103 | 5 | Dang hoc | a@example.com | 0900000001 | Cong nghe phan mem | Chinh quy | |
-| SV002 | Tran Thi B | CNTT1 | CNTT | He thong thong tin | 7480104 | 5 | Dang hoc | b@example.com | 0900000002 | He thong thong tin | Chinh quy | |
-| SV003 | Le Van C | CNTT2 | CNTT | Ky thuat phan mem | 7480103 | 3 | Dang hoc | c@example.com | 0900000003 | Cong nghe phan mem | Lien thong | |
+| PS20001 | Nguyễn Văn An | UD19301 | K19 | UDPM_N | UDPM | Kỳ 1 | HD | annvps20001@fpt.edu.vn | *(số, dạng khoa học — xem lỗi bên dưới)* | UDPM | UDPMITI101 - Nhập môn Công nghệ thông tin | Sinh viên mới nhập học |
+| PS20002 | Trần Thị Bình | UD19301 | K19 | UDPM_N | UDPM | Kỳ 1 | HD | binhttps20002@fpt.edu.vn | *(số, dạng khoa học)* | UDPM | UDPMNAV101 - Lập trình web cơ bản (Java) | |
 
-> `SINHVIEN.TrangThai` ở đây là trạng thái học tập của sinh viên (Đang học / Bảo lưu / Đã tốt nghiệp...) — **khác** với `DANGKY.TrangThai` (trạng thái tiến trình đăng ký trả nợ: Đã đăng ký → Đã xếp lịch → Đã học → Đã thi, xem mục 3.2 khung chương trình). Hai cột trùng tên nhưng khác sheet, khác ý nghĩa, đừng nhầm lẫn khi viết code lọc theo `trangThai`.
+**Hai điểm cần lưu ý về dữ liệu thật này:**
 
-Có dữ liệu mẫu thì mới chạy thử được `layDanhSachSinhVien()` ở bước 6.
+1. `TrangThai` dùng **mã ngắn** (`HD`, `HL`...) chứ không phải chữ đầy đủ như ví dụ "Dang hoc" ban đầu — mã này tra nghĩa qua sheet `DANH_MUC`. Đây **vẫn là trạng thái học tập của sinh viên** (`SINHVIEN.TrangThai`), khác với `DANGKY.TrangThai` (trạng thái tiến trình đăng ký trả nợ: Đã đăng ký → Đã xếp lịch → Đã học → Đã thi, mục 3.2 khung chương trình). Hai cột trùng tên nhưng khác sheet, khác ý nghĩa — đừng nhầm khi viết code lọc theo `trangThai`.
+2. Cột `SDT` đang lưu kiểu **số**, Sheets/Excel hiển thị dạng khoa học (ví dụ `9.01234561E8`) — số điện thoại Việt Nam có số `0` đứng đầu sẽ **bị mất chữ số 0** khi đọc bằng `getValues()`. Nên đổi định dạng cột này thành **Plain text** trên Sheet thật trước khi các buổi sau (5, 6 — hiển thị/tra cứu số điện thoại) dùng tới, và nhập lại số kèm dấu `'` ở đầu (ví dụ `'0901234561`) để Sheets không tự chuyển thành số.
+
+Vì đã có dữ liệu thật, `layDanhSachSinhVien()` ở bước 6 chạy thử trực tiếp trên 200 dòng này luôn, không cần nhập thêm.
 
 ### Bước 4 — Mở Apps Script Editor
 
@@ -128,9 +154,9 @@ function layDanhSachSinhVien() {
    ```
    rồi chọn chạy hàm `test`. Tham số `soDong` (mặc định 20) giới hạn số dòng log ra — nếu sau này `SINHVIEN` có hàng nghìn dòng, log toàn bộ mảng dễ làm Executions bị chậm/treo. Muốn xem nhiều/ít hơn thì gọi `test(50)` từ một hàm khác, hoặc sửa tạm giá trị mặc định.
 
-Kết quả mong đợi: một mảng object, ví dụ
+Kết quả mong đợi: một mảng object với dữ liệu thật, ví dụ
 ```
-[{mssv=SV001.0, hoTen=Nguyen Van A, lop=CNTT1, khoa=CNTT}, ...]
+[{mssv=PS20001, hoTen=Nguyễn Văn An, lop=UD19301, khoa=K19, ...}, ...] (200 phần tử)
 ```
 
 ### Bước 8 — Tự kiểm tra tiêu chí đạt
@@ -162,3 +188,5 @@ Nếu trả lời được hai câu trên → đạt tiêu chí buổi 1.
 - 2026-09-21 — Mở rộng cột `SINHVIEN` thành 13 cột thực tế (`MSSV, HoTen, Lop, Khoa, ChuyenNganh, MaNganh, KyHoc, TrangThai, Email, SDT, BoMon, PhanLoai, GhiChu`) theo yêu cầu người dùng; cập nhật `layDanhSachSinhVien()` trong README và [`Code.gs`](./Code.gs) để map đủ 13 trường.
 - 2026-09-21 — Sửa hàm `test()` nhận tham số `soDong` (mặc định 20), chỉ log N dòng đầu thay vì log toàn bộ mảng, tránh treo/chậm khi `SINHVIEN` có nhiều dữ liệu.
 - 2026-09-21 — Bước 1-7 hoàn thành, `layDanhSachSinhVien()` chạy đúng, trả về dữ liệu như kỳ vọng. Bổ sung giải thích chi tiết cho Bước 8 (mảng 2 chiều + snapshot "không sống"). Còn lại: tự xác nhận hiểu Bước 8 để chốt buổi 1.
+- 2026-09-21 — Chuyển sang Buổi 2, xem [`Buoi-2/README.md`](../Buoi-2/README.md). `Sheet.gs`/`SinhVien.gs` của buổi 2 kế thừa trực tiếp từ [`Code.gs`](./Code.gs) ở đây (đổi tên chuỗi `'SINHVIEN'` thành hằng số, thêm try/catch).
+- 2026-09-21 — Đọc `QUAN_LY_TRA_NO_MON.xlsx` (bản export thật) để đối chiếu lại README. Phát hiện: file thật có 8 sheet (thêm `DANH_MUC`, `Header_Raw`, và `KETQUA` đã có sẵn); `MONHOC`/`DANGKY`/`LICH` có cột khác mục 3.2 tài liệu khung; `SINHVIEN` đã có 200 dòng, `MONHOC` có 270 dòng dữ liệu thật (không còn là dữ liệu mẫu). Hai lỗi dữ liệu cần người dùng tự sửa trên Sheet thật: (1) `DANGKY` có 2 cột trùng tên `GhiChu` (cột F, G); (2) `SINHVIEN.SDT` lưu kiểu số gây mất số 0 đầu — nên đổi định dạng cột thành Plain text. Đã cập nhật Bước 1-3, 7 và thêm mục "Chênh lệch giữa dữ liệu thật và hướng dẫn ban đầu" ở đầu file.
